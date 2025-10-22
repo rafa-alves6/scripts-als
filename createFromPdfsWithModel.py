@@ -50,5 +50,5 @@ def create_word_from_pdf(model_docx_path):
     print("Process completed.")
 
 # Example usage:
-model_docx_path = 'path/to/your/model/file.docx'
+model_docx_path = r'Z:\CARTORIO DE SIMAO DIAS\modelo.docx'
 create_word_from_pdf(model_docx_path)
