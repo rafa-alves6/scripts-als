@@ -1,5 +1,6 @@
 import os
-from docx import Document
+import shutil
+import win32com.client as win32
 
 def create_word_from_pdf(model_docx_path):
     # Get the current directory where the script is located
@@ -20,33 +21,42 @@ def create_word_from_pdf(model_docx_path):
         print("No valid PDF files found in the folder.")
         return
 
-    # Load the model Word document to replicate its content
+    # Initialize Word application (using COM automation)
+    word = win32.Dispatch('Word.Application')
+    word.Visible = False  # Don't show Word UI (run in the background)
+
     try:
-        model_doc = Document(model_docx_path)
+        # Open the model Word document
+        doc = word.Documents.Open(model_docx_path)
+
+        # Process each PDF file and create the corresponding Word document
+        for pdf_file in pdf_files:
+            # Extract the numeric part of the filename (remove the .pdf)
+            pdf_name_without_extension = pdf_file[:-4]
+            new_docx_path = os.path.join(word_dir, f"{pdf_name_without_extension}.docx")
+            
+            # Make a copy of the model document
+            doc.Copy()
+            new_doc = word.Documents.Add()  # Create a new document
+            new_doc.Range(0, 0).Paste()  # Paste content from the clipboard
+
+            # Save the new document with the appropriate name
+            try:
+                new_doc.SaveAs(new_docx_path)
+                print(f"Created: {new_docx_path}")
+            except Exception as e:
+                print(f"Failed to create Word document for {pdf_file}: {e}")
+            finally:
+                new_doc.Close()
+
     except Exception as e:
-        print(f"Error loading model document: {e}")
-        return
+        print(f"Error opening model document: {e}")
+    finally:
+        # Close the original model document
+        doc.Close()
 
-    # Process each PDF file and create the corresponding Word document
-    for pdf_file in pdf_files:
-        # Extract the numeric part of the filename (remove the .pdf)
-        pdf_name_without_extension = pdf_file[:-4]
-        new_docx_path = os.path.join(word_dir, f"{pdf_name_without_extension}.docx")
-        
-        # Create a new Word document based on the model
-        new_doc = Document()
+    word.Quit()  # Close the Word application
 
-        # Copy content from the model document to the new document
-        for element in model_doc.element.body:
-            new_doc.element.body.append(element)
-
-        # Save the new document with the appropriate name
-        try:
-            new_doc.save(new_docx_path)
-            print(f"Created: {new_docx_path}")
-        except Exception as e:
-            print(f"Failed to create Word document for {pdf_file}: {e}")
-        
     print("Process completed.")
 
 # Example usage:
